@@ -1,22 +1,40 @@
-code: name: Windows - LiteManager
-
+name: VPS
 on:
   workflow_dispatch:
-
 jobs:
-  build:
-    name: Start Building...
-    runs-on: windows-latest
-    timeout-minutes: 9999
-    
+  secure-vps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
     steps:
-      - name: Downloading & Installing Essentials
+      - name: Install & Configure SSH
         run: |
-          Invoke-WebRequest -Uri "https://gitlab.com/chamod12/lm_win-10_github_rdp/-/raw/main/Downloads.bat" -OutFile "Downloads.bat"
-          cmd /c Downloads.bat
+          sudo apt update -y
+          sudo apt install -y openssh-server
+          sudo systemctl enable ssh
+          sudo systemctl start ssh
+          echo "root:admin@123" | sudo chpasswd
+          echo "PermitRootLogin yes" | sudo tee -a /etc/ssh/sshd_config
+          sudo service ssh restart
+          echo "✅ SSH user: root | pass: admin@123"
 
-      - name: Connect to LiteManager
-        run: cmd /c show.bat
+      - name: Install Tailscale
+        run: |
+          curl -fsSL https://tailscale.com/install.sh | sh
+          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=vps-${{ github.run_id }}
+          tsIP=$(tailscale ip -4 | head -n 1)
+          echo "TAILSCALE_IP=$tsIP" >> $GITHUB_ENV
+          echo "✅ Tailscale IP: $tsIP"
 
-      - name: Time Counter
-        run: cmd /c loop.bat
+      - name: Verify SSH Access
+        run: |
+          echo "Tailscale VPS ready!"
+          echo "IP: $env:TAILSCALE_IP"
+          echo "User: root"
+          echo "Pass: admin@123"
+
+      - name: Keep VPS Alive
+        run: |
+          while true; do
+            echo "[$(date)] VPS running..."
+            sleep 300
+          done
