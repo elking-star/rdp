@@ -1,0 +1,10 @@
+qemu-system-x86_64 \
+   -machine pc \
+   -cpu qemu64 \
+   -m 32000
+   -swp 16
+   -accel tcg
+   -drive file=ubuntu.qcow2, format=qcow2 \
+   -boot c \
+   -net nic -net server,hostfwd-tcp::2022-:22,hostfwd-tcp::3389-:3389 \
+   -vnc :0
